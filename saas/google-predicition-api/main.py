@@ -69,17 +69,6 @@ print('Training took %i Seconds.' % (end_training - start_training) );
 # test model
 start_test = timer()
 
-# callback for batch processing
-# def batch_callback( row, request_id, response, exception):
-#   if exception is not None:
-#     print response
-#     pass
-#   else:
-#     with open(result_csv, 'a+') as csv_result_file:
-#         result_csv_writer = csv.writer(csv_result_file, delimiter=',', quotechar='"', lineterminator="\n")
-#         result_csv_writer.writerow([response['outputLabel']] + row)
-#     pass
-
 def batch_callback( row, results, position, request_id, response, exception):
   if exception is not None:
     print exception
