@@ -64,19 +64,25 @@ while service.trainedmodels().get(project=project_id, id=model_id).execute()['tr
 
 end_training = timer()
 
+# get model type
+trained_model = service.trainedmodels().get(project=project_id, id=model_id).execute()
+model_type = trained_model['modelInfo']['modelType']
+
 print('Training took %i Seconds.' % (end_training - start_training) ); 
 
 # test model
 start_test = timer()
 
-def batch_callback( row, results, position, request_id, response, exception):
+def batch_callback( row, results, position, model_type, request_id, response, exception):
   if exception is not None:
     print exception
     pass
   else:
-    results.insert(position, [response['outputLabel']] + row)
+    if model_type == 'regression':
+        results.insert(position, [response['outputValue']] + row)
+    else:
+        results.insert(position, [response['outputLabel']] + row)
     pass
-
 
 print('Testing model.')
 
@@ -117,7 +123,7 @@ with open(test_csv) as csv_test_file:
         )  
         
         # callback with j to keep initla order due to async nature of batch callbacks
-        partial_callback = partial(batch_callback, row, results, i)
+        partial_callback = partial(batch_callback, row, results, i, model_type)
         batch.add(request, callback=partial_callback)
 
         i = i+1
