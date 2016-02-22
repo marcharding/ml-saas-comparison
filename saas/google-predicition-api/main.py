@@ -106,8 +106,9 @@ with open(test_csv) as csv_test_file:
     for row in test_csv_reader:
 
         # only 1000 requests/batch, see https://cloud.google.com/prediction/docs/reference/v1.6/batch
-        #
-        if i % 1000 == 0:
+        # because the api is very flaky we just use 100
+        # see https://github.com/google/google-api-ruby-client/issues/210#issuecomment-100377192
+        if i % 100 == 0:
             batch = service.new_batch_http_request()
         
         # print "DEBUG: Testing model"
@@ -127,11 +128,11 @@ with open(test_csv) as csv_test_file:
         batch.add(request, callback=partial_callback)
 
         i = i+1
-        if i % 1000 == 0:
+        if i % 100 == 0:
             batch.execute()
 
 # execute open batches
-if i % 1000 != 0:
+if i % 100 != 0:
     batch.execute()
 
 # write results
