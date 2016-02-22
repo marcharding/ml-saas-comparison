@@ -108,6 +108,7 @@ with open(test_csv) as csv_test_file:
         # only 1000 requests/batch, see https://cloud.google.com/prediction/docs/reference/v1.6/batch
         # because the api is very flaky we just use 100
         # see https://github.com/google/google-api-ruby-client/issues/210#issuecomment-100377192
+
         if i % 100 == 0:
             batch = service.new_batch_http_request()
         
@@ -129,7 +130,11 @@ with open(test_csv) as csv_test_file:
 
         i = i+1
         if i % 100 == 0:
+            print i
             batch.execute()
+            # also only 100 requests per 100 seconds, so sleep for 2 seconds
+            time.sleep(2)
+
 
 # execute open batches
 if i % 100 != 0:
