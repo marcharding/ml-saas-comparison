@@ -1,8 +1,8 @@
 from bigml.api import BigML
-import csv
-import time
-import sys
 from timeit import default_timer as timer
+import csv
+import sys
+import time
 
 def bigml( train_csv, test_csv, result_csv ):
 
