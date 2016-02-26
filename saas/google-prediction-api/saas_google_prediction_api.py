@@ -15,17 +15,17 @@ import random
 import sys
 import time
 
-def google_prediction_api( train_csv, test_csv, result_csv ):
+def google_prediction_api( train_csv, test_csv, result_csv, force_model_type = None):
 
     # project
-    with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS']) as app_credentials_json:    
+    with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS']) as app_credentials_json:
         app_credentials = json.load(app_credentials_json)
         project_id = app_credentials['project_id']
 
     # model
     model_id = "model-id-%i" % random.randint(0, 65535)
 
-    # bucket 
+    # bucket
     bucket_id = "bucket-id-%i" % random.randint(0, 65535)
 
     # authenticate
@@ -38,7 +38,7 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
     try:
         bucket = client.get_bucket(bucket_id)
     except gcloud.exceptions.NotFound:
-        bucket = client.create_bucket(bucket_id)  
+        bucket = client.create_bucket(bucket_id)
 
     blob = bucket.blob('train.csv')
     blob.upload_from_filename(filename=train_csv)
@@ -46,12 +46,17 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
     # train model
     start_training = timer()
 
+    body = {
+        'storageDataLocation': bucket_id + '/train.csv',
+        'id': model_id,
+    }
+
+    if force_model_type:
+        body['modelType'] = force_model_type
+
     service.trainedmodels().insert(
         project = project_id,
-        body = {
-            'storageDataLocation': bucket_id + '/train.csv',
-            'id': model_id,
-        }    
+        body = body
     ).execute();
 
     print('Training model.')
@@ -65,7 +70,7 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
     trained_model = service.trainedmodels().get(project=project_id, id=model_id).execute()
     model_type = trained_model['modelInfo']['modelType']
 
-    print('Training took %i Seconds.' % (end_training - start_training) ); 
+    print('Training took %i Seconds.' % (end_training - start_training) );
 
     # test model
     start_test = timer()
@@ -91,7 +96,7 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
     # reinstantiate service with working credentials for batch
     credentials = ServiceAccountCredentials.from_json_keyfile_name(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], ['https://www.googleapis.com/auth/prediction'])
     http = credentials.authorize(Http())
-    credentials.refresh(http) 
+    credentials.refresh(http)
     service = build('prediction', 'v1.6', http=http)
 
     i = 0
@@ -108,19 +113,19 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
 
             if i % 100 == 0:
                 batch = service.new_batch_http_request()
-            
+
             # print "DEBUG: Testing model"
             request = service.trainedmodels().predict(
                 project = project_id,
                 id = model_id,
                 body = {
                 'input': {
-                    'csvInstance': 
+                    'csvInstance':
                         row
                     }
                 }
-            )  
-            
+            )
+
             # callback with j to keep initla order due to async nature of batch callbacks
             partial_callback = partial(batch_callback, row, results, i, model_type)
             batch.add(request, callback=partial_callback)
@@ -128,13 +133,22 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
             i = i+1
             if i % 100 == 0:
                 print i
-                batch.execute()
-                # also only 100 requests per 100 seconds, so sleep for 2 seconds
-                time.sleep(2)
+                try :
+                    batch.execute()
+                except HttpError as err:
+                    if err.resp.status in [403, 500, 503]:
+                        sleep(128)
+                        batch.execute()
+                    else:
+                        raise
 
+                # also only 100 requests per 100 seconds are allowed, so sleep for 128 seconds (28 seconds buffer)
+                # ( which also contradics with the limit above ... )
+                time.sleep(128)
 
     # execute open batches
     if i % 100 != 0:
+        time.sleep(128)
         batch.execute()
 
     # write results
@@ -145,7 +159,7 @@ def google_prediction_api( train_csv, test_csv, result_csv ):
 
     end_test = timer()
 
-    print('Testing took %i Seconds' % (end_test - start_test) ); 
+    print('Testing took %i Seconds' % (end_test - start_test) );
 
     existing_models = service.trainedmodels().list(project=project_id).execute()
 
