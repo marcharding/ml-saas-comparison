@@ -13,13 +13,13 @@ all_datasets = {
         'abalone',
         'cardiotocography',
         'census',
-    ], 
+    ],
     'regression': [
         'airfoil',
         'concrete',
-        'housing',   
+        'housing',
         'protein-tertiary-structure'
-    ], 
+    ],
 }
 
 for ml_type in all_datasets:
@@ -29,18 +29,18 @@ for ml_type in all_datasets:
         bigml(
             current_path+'/../../data/%s/train_last_field.csv' % dataset,
             current_path+'/../../data/%s/test_without_results.csv' % dataset,
-            current_path+'/../../data/%s/bigml_results.csv' % dataset,
+            current_path+'/../../results/%s/bigml_results.csv' % dataset,
         )
         print('\nEvaluation:\n')
         if ml_type == 'classification':
             classification_metrics(
                 current_path+'/../../data/%s/test_last_field.csv' % dataset,
-                current_path+'/../../data/%s/bigml_results.csv' % dataset,
+                current_path+'/../../results/%s/bigml_results.csv' % dataset,
                 'last_field'
             )
         if ml_type == 'regression':
             regression_metrics(
                 current_path+'/../../data/%s/test_last_field.csv' % dataset,
-                current_path+'/../../data/%s/bigml_results.csv' % dataset,
+                current_path+'/../../results/%s/bigml_results.csv' % dataset,
                 'last_field'
             )

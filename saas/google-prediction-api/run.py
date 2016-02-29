@@ -13,13 +13,13 @@ all_datasets = {
         'abalone',
         'cardiotocography',
         'census',
-    ], 
+    ],
     'regression': [
         'airfoil',
         'concrete',
-        'housing',   
+        'housing',
         'protein-tertiary-structure'
-    ], 
+    ],
 }
 
 for ml_type in all_datasets:
@@ -29,18 +29,18 @@ for ml_type in all_datasets:
         google_prediction_api(
             current_path+'/../../data/%s/train_first_field.csv' % dataset,
             current_path+'/../../data/%s/test_without_results.csv' % dataset,
-            current_path+'/../../data/%s/google_predicition_api_results.csv' % dataset,
+            current_path+'/../../results/%s/google_predicition_api_results.csv' % dataset,
         )
         print('\nEvaluation:\n')
         if ml_type == 'classification':
             classification_metrics(
                 current_path+'/../../data/%s/test_first_field.csv' % dataset,
-                current_path+'/../../data/%s/google_predicition_api_results.csv' % dataset,
+                current_path+'/../../results/%s/google_predicition_api_results.csv' % dataset,
                 'first_field'
             )
         if ml_type == 'regression':
             regression_metrics(
                 current_path+'/../../data/%s/test_first_field.csv' % dataset,
-                current_path+'/../../data/%s/google_predicition_api_results.csv' % dataset,
+                current_path+'/../../results/%s/google_predicition_api_results.csv' % dataset,
                 'first_field'
             )
